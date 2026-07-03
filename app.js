@@ -261,12 +261,52 @@ function dixonColesCorrection(homeGoals, awayGoals, homeXg, awayXg, rho = -0.18)
 function dynamicRho(homeXg, awayXg, ratingGap) {
   const totalXg = homeXg + awayXg;
   const xgGap = Math.abs(homeXg - awayXg);
+  if (totalXg >= 2.9) return -0.008;
   if (xgGap >= 0.55) return -0.012;
-  if (xgGap >= 0.35) return -0.03;
+  if (xgGap >= 0.35) return -0.026;
   const balance = 1 - clamp(Math.abs(homeXg - awayXg) / 1.35, 0, 1);
-  const lowTempo = 1 - clamp((totalXg - 2.05) / 1.7, 0, 1);
+  const lowTempo = 1 - clamp((totalXg - 1.9) / 1.6, 0, 1);
   const ratingBalance = 1 - clamp(Math.abs(ratingGap) / 360, 0, 1);
-  return -(0.035 + 0.115 * balance * lowTempo * ratingBalance);
+  return -(0.025 + 0.085 * balance * lowTempo * ratingBalance);
+}
+
+function scoreShapeWeight(homeGoals, awayGoals, context) {
+  const totalGoals = homeGoals + awayGoals;
+  const totalXg = context.homeXg + context.awayXg;
+  const favoriteSide = context.ratingGap >= 0 ? "home" : "away";
+  const favoriteGoals = favoriteSide === "home" ? homeGoals : awayGoals;
+  const underdogGoals = favoriteSide === "home" ? awayGoals : homeGoals;
+  const favoriteXg = favoriteSide === "home" ? context.homeXg : context.awayXg;
+  const underdogXg = favoriteSide === "home" ? context.awayXg : context.homeXg;
+  const favoriteEdge = Math.abs(context.ratingGap);
+  const xgGap = Math.abs(context.homeXg - context.awayXg);
+  const knockout = context.stage && context.stage !== "group-stage";
+
+  let weight = 1;
+
+  if (totalGoals <= 1 && totalXg >= 2.35) weight *= 0.74;
+  if (homeGoals === 1 && awayGoals === 1 && totalXg >= 2.45) weight *= 0.82;
+  if (homeGoals === 0 && awayGoals === 0 && totalXg >= 2.15) weight *= 0.58;
+
+  if (totalGoals >= 3) weight *= 1 + clamp((totalXg - 2.15) * 0.22, 0, 0.38);
+  if (totalGoals >= 4 && totalXg >= 2.75) weight *= 1.08;
+  if (knockout && totalGoals >= 3) weight *= 1.07;
+
+  if (favoriteGoals >= 2 && favoriteGoals > underdogGoals && favoriteXg >= 1.55) {
+    weight *= 1 + clamp((favoriteEdge - 80) / 520, 0, 0.28) + clamp((favoriteXg - 1.55) * 0.10, 0, 0.16);
+  }
+  if (favoriteGoals >= 3 && favoriteGoals - underdogGoals >= 2) {
+    weight *= 1 + clamp((favoriteEdge - 130) / 520, 0, 0.24);
+  }
+
+  if (homeGoals > 0 && awayGoals > 0 && totalXg >= 2.35) weight *= 1.08;
+  if (underdogGoals > 0 && underdogXg < 0.9 && favoriteEdge >= 260) weight *= 0.64;
+  if (underdogGoals === 0 && favoriteXg >= 1.95 && favoriteEdge >= 220) weight *= 1.18;
+  if (homeGoals === awayGoals && totalGoals >= 4 && xgGap <= 0.22) weight *= 1.05;
+  if (underdogGoals >= 2 && underdogXg < 1.05) weight *= 0.82;
+  if (totalGoals >= 6) weight *= 0.74;
+
+  return clamp(weight, 0.42, 1.78);
 }
 
 function modelMatch(match, variables = state.variables) {
@@ -288,8 +328,10 @@ function modelMatch(match, variables = state.variables) {
   const hostTeams = ["Mexico", "United States", "Canada"];
   const hostBoost = hostTeams.includes(match.homeTeam) ? 0.16 : hostTeams.includes(match.awayTeam) ? -0.12 : 0;
   const ratingGap = homeRating - awayRating;
-  const baseHome = 1.32 + ratingGap * 0.00165 + hostBoost;
-  const baseAway = 1.18 - ratingGap * 0.00145 - hostBoost * 0.72;
+  const knockoutTempo = match.stage && match.stage !== "group-stage" ? 0.10 : 0;
+  const mismatchTempo = clamp(Math.abs(ratingGap) / 420, 0, 0.16);
+  const baseHome = 1.36 + knockoutTempo + mismatchTempo + ratingGap * 0.00172 + hostBoost;
+  const baseAway = 1.20 + knockoutTempo * 0.72 + mismatchTempo * 0.66 - ratingGap * 0.00150 - hostBoost * 0.72;
   const homeForm = teamForm(match.homeTeam);
   const awayForm = teamForm(match.awayTeam);
   const homeFormDelta = formAttackBoost(homeForm) + formDefensiveLeak(awayForm);
@@ -305,14 +347,16 @@ function modelMatch(match, variables = state.variables) {
   let best = { probability: 0, homeGoals: 0, awayGoals: 0 };
   const handicap = variables.handicapEnabled ? Number(variables.handicap) : 0;
   const rho = dynamicRho(homeXg, awayXg, ratingGap);
+  const scoreContext = { homeXg, awayXg, ratingGap, stage: match.stage };
 
   for (let homeGoals = 0; homeGoals <= 8; homeGoals += 1) {
     for (let awayGoals = 0; awayGoals <= 8; awayGoals += 1) {
       const probability = Math.max(
         0,
-        poisson(homeXg, homeGoals) *
+          poisson(homeXg, homeGoals) *
           poisson(awayXg, awayGoals) *
-          dixonColesCorrection(homeGoals, awayGoals, homeXg, awayXg, rho)
+          dixonColesCorrection(homeGoals, awayGoals, homeXg, awayXg, rho) *
+          scoreShapeWeight(homeGoals, awayGoals, scoreContext)
       );
       const adjustedHomeGoals = homeGoals + handicap;
       matrix.push({ homeGoals, awayGoals, probability });
@@ -1033,6 +1077,27 @@ function renderHeatmapChart(result, match) {
   });
 }
 
+function matrixResultFromModel(model, maxGoals = 5) {
+  const visible = model.matrix.filter((item) => item.homeGoals < maxGoals && item.awayGoals < maxGoals);
+  const total = visible.reduce((sum, item) => sum + item.probability, 0) || 1;
+  let top_prediction = "0:0";
+  let top_probability = 0;
+  const heatmap_data = visible.map((item) => {
+    const percent = Math.round((item.probability / total) * 10000) / 100;
+    if (percent > top_probability) {
+      top_probability = percent;
+      top_prediction = `${item.homeGoals}:${item.awayGoals}`;
+    }
+    return [item.awayGoals, item.homeGoals, percent];
+  });
+  return {
+    heatmap_data,
+    top_prediction,
+    top_probability,
+    model: "dixon-coles-calibrated"
+  };
+}
+
 async function renderHeatmap(match, model) {
   if (!model.available) {
     clearHeatmap("对阵尚未确定");
@@ -1042,11 +1107,11 @@ async function renderHeatmap(match, model) {
   const requestId = ++matrixRequestId;
   const staticHost = window.location.hostname.endsWith("github.io") || window.location.protocol === "file:";
   if (staticHost) {
-    const fallback = generateLocalMatrix(model.homeXg, model.awayXg, model.rho ?? -0.18, 5);
+    const fallback = matrixResultFromModel(model, 5);
     $("#matrixTopScore").textContent = fallback.top_prediction;
     $("#matrixTopProbability").textContent = `${fallback.top_probability}%`;
     $("#matrixStatus").textContent =
-      `静态公网版 · 前端同公式矩阵 · rho ${(model.rho ?? -0.18).toFixed(3)} · xG ${model.homeXg.toFixed(2)}-${model.awayXg.toFixed(2)}`;
+      `静态公网版 · 进球尾部校准矩阵 · rho ${(model.rho ?? -0.18).toFixed(3)} · xG ${model.homeXg.toFixed(2)}-${model.awayXg.toFixed(2)}`;
     renderHeatmapChart(fallback, match);
     return;
   }
