@@ -1040,6 +1040,17 @@ async function renderHeatmap(match, model) {
   }
 
   const requestId = ++matrixRequestId;
+  const staticHost = window.location.hostname.endsWith("github.io") || window.location.protocol === "file:";
+  if (staticHost) {
+    const fallback = generateLocalMatrix(model.homeXg, model.awayXg, model.rho ?? -0.18, 5);
+    $("#matrixTopScore").textContent = fallback.top_prediction;
+    $("#matrixTopProbability").textContent = `${fallback.top_probability}%`;
+    $("#matrixStatus").textContent =
+      `静态公网版 · 前端同公式矩阵 · rho ${(model.rho ?? -0.18).toFixed(3)} · xG ${model.homeXg.toFixed(2)}-${model.awayXg.toFixed(2)}`;
+    renderHeatmapChart(fallback, match);
+    return;
+  }
+
   $("#matrixStatus").textContent = "正在调用 Dixon-Coles 接口";
   const params = new URLSearchParams({
     matchId: String(match.matchNumber),
