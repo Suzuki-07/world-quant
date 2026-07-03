@@ -1,0 +1,10 @@
+node_modules/
+.vercel/
+tools/node-v*/
+tools/node-v*.zip
+tools/bin/
+tools/gh_*.zip
+tools/cloudflared.exe
+tools/*.log
+tools/direct_https_proxy.mjs
+tools/LICENSE

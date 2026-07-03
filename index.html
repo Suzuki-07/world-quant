@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#111411" />
+    <meta
+      name="description"
+      content="2026 世界杯 104 场赛程、量化概率、比分建议与中国体育彩票奖金计算。"
+    />
+    <title>世界杯量化决策台</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=14" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-mark" aria-label="世界杯量化决策台">
+          <span class="brand-glyph">WQ</span>
+          <div>
+            <strong>WORLD QUANT</strong>
+            <span>世界杯量化决策台</span>
+          </div>
+        </div>
+
+        <nav class="side-nav" aria-label="主导航">
+          <button class="nav-item active" data-scroll="overview">
+            <i data-lucide="layout-dashboard"></i><span>全局看板</span>
+          </button>
+          <button class="nav-item" data-scroll="fixtures">
+            <i data-lucide="calendar-days"></i><span>104 场赛程</span>
+          </button>
+          <button class="nav-item" data-scroll="analysis">
+            <i data-lucide="activity"></i><span>单场分析</span>
+          </button>
+          <button class="nav-item" data-scroll="bankroll">
+            <i data-lucide="calculator"></i><span>竞彩计算</span>
+          </button>
+        </nav>
+
+        <div class="source-health">
+          <div class="source-health-head">
+            <span>数据健康度</span>
+            <strong id="healthScore">--</strong>
+          </div>
+          <div class="health-bar"><span id="healthBar"></span></div>
+          <div class="source-row">
+            <span class="status-dot live"></span>
+            <span>赛程结构</span>
+            <b>104 场</b>
+          </div>
+          <div class="source-row">
+            <span class="status-dot" id="resultDot"></span>
+            <span>赛果同步</span>
+            <b id="resultStatus">读取中</b>
+          </div>
+          <div class="source-row">
+            <span class="status-dot warning"></span>
+            <span>官方首发</span>
+            <b>赛前确认</b>
+          </div>
+        </div>
+
+        <button class="disclosure-btn" id="openSources">
+          <i data-lucide="shield-check"></i>
+          <span>方法与数据边界</span>
+        </button>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">FIFA WORLD CUP 2026 · QUANT DESK</p>
+            <h1>比赛概率，不是中奖承诺</h1>
+          </div>
+          <div class="top-actions">
+            <div class="asof-chip">
+              <span class="status-dot live"></span>
+              <span id="asOfTime">正在校准数据</span>
+            </div>
+            <button class="icon-btn" id="openSourcesTop" title="方法与数据边界" aria-label="方法与数据边界">
+              <i data-lucide="shield-question"></i>
+            </button>
+            <button class="icon-btn" id="refreshData" title="刷新公开数据" aria-label="刷新公开数据">
+              <i data-lucide="refresh-cw"></i>
+            </button>
+          </div>
+        </header>
+
+        <section class="overview-band" id="overview">
+          <img src="./assets/world-quant-stadium-clean-4k.jpg" alt="" />
+          <div class="overview-scrim"></div>
+          <div class="overview-content">
+            <div class="overview-copy">
+              <div class="live-label">
+                <span class="pulse"></span>
+                <span id="tournamentState">赛事进行中</span>
+              </div>
+              <h2>把不确定性摆到台面上</h2>
+              <p>Poisson 比分分布 × 复合实力评分 × 场地旅行 × 阵容可用度</p>
+            </div>
+            <div class="overview-stats">
+              <div>
+                <span>完整赛程</span>
+                <strong id="totalMatches">104</strong>
+                <small>场</small>
+              </div>
+              <div>
+                <span>已完赛</span>
+                <strong id="completedMatches">--</strong>
+                <small>场</small>
+              </div>
+              <div>
+                <span>模型覆盖</span>
+                <strong id="modelCoverage">--</strong>
+                <small>场</small>
+              </div>
+              <div>
+                <span>建议观望</span>
+                <strong id="passCount">--</strong>
+                <small>场</small>
+              </div>
+            </div>
+            <div class="recent-score-rail hidden" id="recentScoreRail" aria-label="近两日比分校准"></div>
+          </div>
+        </section>
+
+        <section class="workspace-grid">
+          <div class="fixture-panel" id="fixtures">
+            <div class="section-head">
+              <div>
+                <span class="section-kicker">MATCH CENTER</span>
+                <h2>全部场次</h2>
+              </div>
+              <div class="head-tools">
+                <label class="search-box">
+                  <i data-lucide="search"></i>
+                  <input id="matchSearch" type="search" placeholder="搜索球队、城市" />
+                </label>
+              </div>
+            </div>
+
+            <div class="filter-row">
+              <div class="segmented" id="stageFilters">
+                <button class="active" data-filter="knockout">淘汰赛</button>
+                <button data-filter="today">今日</button>
+                <button data-filter="upcoming">待赛</button>
+                <button data-filter="all">全部</button>
+              </div>
+              <select id="groupFilter" aria-label="筛选小组">
+                <option value="all">淘汰赛/全部</option>
+                <option value="A">A 组</option>
+                <option value="B">B 组</option>
+                <option value="C">C 组</option>
+                <option value="D">D 组</option>
+                <option value="E">E 组</option>
+                <option value="F">F 组</option>
+                <option value="G">G 组</option>
+                <option value="H">H 组</option>
+                <option value="I">I 组</option>
+                <option value="J">J 组</option>
+                <option value="K">K 组</option>
+                <option value="L">L 组</option>
+              </select>
+            </div>
+
+            <div class="table-head">
+              <span>场次 / 时间 / 球场</span>
+              <span>对阵</span>
+              <span>模型概率</span>
+              <span>策略信号</span>
+            </div>
+            <div class="fixture-list" id="fixtureList" aria-live="polite"></div>
+            <button class="load-more" id="loadMore">
+              <span>显示更多</span><i data-lucide="chevron-down"></i>
+            </button>
+          </div>
+
+          <aside class="analysis-panel" id="analysis">
+            <div class="analysis-empty" id="analysisEmpty">
+              <i data-lucide="mouse-pointer-click"></i>
+              <h3>选择一场比赛</h3>
+              <p>查看比分分布、胜平负概率和关键变量。</p>
+            </div>
+
+            <div class="analysis-content hidden" id="analysisContent">
+              <div class="analysis-head">
+                <div>
+                  <span class="match-code" id="detailCode">MATCH --</span>
+                  <span class="confidence-chip" id="confidenceChip">--</span>
+                </div>
+                <button class="icon-btn compact" id="closeAnalysis" title="关闭分析" aria-label="关闭分析">
+                  <i data-lucide="x"></i>
+                </button>
+              </div>
+
+              <div class="match-hero">
+                <div class="team-side">
+                  <span class="team-flag" id="homeFlag">--</span>
+                  <strong id="homeName">主队</strong>
+                  <small id="homeRating">--</small>
+                </div>
+                <div class="score-pick">
+                  <span>模型比分</span>
+                  <strong id="scorePrediction">- : -</strong>
+                  <small id="kickoffDetail">--</small>
+                </div>
+                <div class="team-side away">
+                  <span class="team-flag" id="awayFlag">--</span>
+                  <strong id="awayName">客队</strong>
+                  <small id="awayRating">--</small>
+                </div>
+              </div>
+
+              <div class="probability-block">
+                <div class="prob-title">
+                  <span>胜平负概率</span>
+                  <small>90 分钟</small>
+                </div>
+                <div class="prob-bar" id="probBar">
+                  <span class="home"></span>
+                  <span class="draw"></span>
+                  <span class="away"></span>
+                </div>
+                <div class="prob-labels">
+                  <div><span>主胜</span><strong id="homeProb">--</strong></div>
+                  <div><span>平局</span><strong id="drawProb">--</strong></div>
+                  <div><span>客胜</span><strong id="awayProb">--</strong></div>
+                </div>
+              </div>
+
+              <div class="signal-strip" id="signalStrip">
+                <i data-lucide="shield-alert"></i>
+                <div>
+                  <span>模型信号</span>
+                  <strong id="signalText">--</strong>
+                </div>
+              </div>
+
+              <div class="metric-grid">
+                <div><span>大 2.5</span><strong id="overProb">--</strong></div>
+                <div><span>双方进球</span><strong id="bttsProb">--</strong></div>
+                <div><span>主队期望进球</span><strong id="homeXg">--</strong></div>
+                <div><span>客队期望进球</span><strong id="awayXg">--</strong></div>
+              </div>
+
+              <div class="matrix-card">
+                <div class="matrix-head">
+                  <div>
+                    <span>DIXON-COLES MATRIX</span>
+                    <h3>动态比分推演矩阵</h3>
+                  </div>
+                  <div class="matrix-topline">
+                    <span>最可能比分</span>
+                    <strong id="matrixTopScore">--</strong>
+                    <small id="matrixTopProbability">--</small>
+                  </div>
+                </div>
+                <div class="matrix-status" id="matrixStatus">等待模型输入</div>
+                <div id="scoreHeatmap" class="score-heatmap" aria-label="比分概率热力图"></div>
+              </div>
+
+              <div class="variable-panel">
+                <div class="subhead">
+                  <span>阵容与变量</span>
+                  <button class="text-btn" id="resetVariables">重置</button>
+                </div>
+                <label class="range-control">
+                  <span>主队可用度 <b id="homeAvailabilityLabel">100%</b></span>
+                  <input id="homeAvailability" type="range" min="82" max="104" value="100" />
+                </label>
+                <label class="range-control">
+                  <span>客队可用度 <b id="awayAvailabilityLabel">100%</b></span>
+                  <input id="awayAvailability" type="range" min="82" max="104" value="100" />
+                </label>
+                <div class="toggle-row">
+                  <div>
+                    <span>让球胜平负</span>
+                    <small>按整数让球重算</small>
+                  </div>
+                  <label class="switch">
+                    <input id="handicapToggle" type="checkbox" />
+                    <span></span>
+                  </label>
+                </div>
+                <label class="select-control hidden" id="handicapControl">
+                  <span>主队让球</span>
+                  <select id="handicapValue">
+                    <option value="-2">-2</option>
+                    <option value="-1" selected>-1</option>
+                    <option value="1">+1</option>
+                    <option value="2">+2</option>
+                  </select>
+                </label>
+                <div class="integrity-note">
+                  <i data-lucide="scan-search"></i>
+                  <p><strong>资本操作 / 演戏：</strong>无可核验证据时不进入模型，也不做暗示性判断。</p>
+                </div>
+              </div>
+
+              <button class="primary-btn" id="openBankroll">
+                <i data-lucide="ticket-plus"></i>
+                <span>加入竞彩计算器</span>
+              </button>
+            </div>
+          </aside>
+        </section>
+
+        <section class="bankroll-band" id="bankroll">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">SPORTTERY CALCULATOR</span>
+              <h2 id="calculatorHeading">竞彩足球胜平负计算器</h2>
+            </div>
+            <p id="calculatorDescription">按中国体育彩票竞彩规则计算。固定奖金须以实际出票时刻为准。</p>
+          </div>
+
+          <div class="bet-type-switch segmented" id="betType">
+            <button class="active" data-bet-type="spf">
+              <i data-lucide="shield-check"></i><span>胜平负</span><small>最多 8 场</small>
+            </button>
+            <button data-bet-type="score">
+              <i data-lucide="binary"></i><span>比分</span><small>31 项 · 最多 4 场</small>
+            </button>
+          </div>
+
+          <div class="sporttery-layout">
+            <div class="bet-builder">
+              <div class="bet-builder-head">
+                <div>
+                  <span>已选赛事</span>
+                  <strong><b id="betMatchCount">0</b> / <span id="betMatchLimit">8</span> 场</strong>
+                </div>
+                <div class="bet-builder-actions">
+                  <button class="secondary-btn compact" id="addCurrentMatch">
+                    <i data-lucide="plus"></i><span>加入当前场</span>
+                  </button>
+                  <button class="text-btn" id="clearBetSlip">清空</button>
+                </div>
+              </div>
+
+              <div class="bet-slip-empty" id="betSlipEmpty">
+                <i data-lucide="tickets"></i>
+                <strong>还没有选择赛事</strong>
+                <p>在单场分析中点击“加入竞彩计算器”，最多可加入 8 场。</p>
+              </div>
+              <div class="bet-slip-list hidden" id="betSlipList"></div>
+            </div>
+
+            <div class="calculator-panel">
+              <div class="calculator-block">
+                <div class="calculator-label">
+                  <span>过关方式</span>
+                  <small id="passHint">至少选择 2 场</small>
+                </div>
+                <div class="segmented pass-mode" id="passMode">
+                  <button class="active" data-mode="fixed">M 串 N</button>
+                  <button data-mode="free">自由过关</button>
+                </div>
+                <div class="pass-options" id="passOptions"></div>
+              </div>
+
+              <div class="calculator-block multiplier-block">
+                <div class="calculator-label">
+                  <span>投注倍数</span>
+                  <small>最高 50 倍</small>
+                </div>
+                <div class="stepper">
+                  <button id="decreaseMultiplier" aria-label="减少倍数"><i data-lucide="minus"></i></button>
+                  <input id="multiplierInput" type="number" min="1" max="50" value="1" />
+                  <button id="increaseMultiplier" aria-label="增加倍数"><i data-lucide="plus"></i></button>
+                </div>
+              </div>
+
+              <div class="ticket-summary">
+                <div><span>注数</span><strong id="ticketBetCount">0</strong><small>注</small></div>
+                <div><span>投注金额</span><strong id="ticketCost">0.00</strong><small>元</small></div>
+                <div><span>理论奖金</span><strong id="ticketPrizeRange">0.00</strong><small>元</small></div>
+              </div>
+
+              <div class="calculator-status" id="calculatorStatus">请选择赛事、投注结果和过关方式。</div>
+
+              <div class="prize-detail">
+                <div class="allocation-head">
+                  <div>
+                    <span>奖金明细</span>
+                    <strong id="calculationTitle">等待计算</strong>
+                  </div>
+                  <span class="risk-badge" id="calculationBadge">官方规则</span>
+                </div>
+                <div class="prize-detail-head">
+                  <span>过关</span><span>组合</span><span>注数</span><span>奖金范围</span>
+                </div>
+                <div class="prize-detail-list" id="prizeDetailList">
+                  <div class="prize-detail-empty">暂无可计算组合</div>
+                </div>
+              </div>
+
+              <details class="official-rules">
+                <summary><i data-lucide="book-open-check"></i><span>计算规则与奖金封顶</span></summary>
+                <div>
+                  <p>每注 2 元。单注奖金为 2 元乘以各场固定奖金连乘，先按“四舍六入、五成双”保留两位，再汇总并乘投注倍数。</p>
+                  <p>单注封顶：单关 10 万元；2–3 关 20 万元；4–5 关 50 万元；6 关及以上 100 万元。</p>
+                  <p>比分包含 31 个官方投注选项；含比分玩法时自由过关最高 4 关，胜平负最高 8 关。M 串 N 是固定组合且只能单选。</p>
+                  <p><a href="https://www.sporttery.cn/help/273604.html?gid=2" target="_blank" rel="noreferrer">查看中国体育彩票官方奖金计算规则</a></p>
+                  <p><a href="https://www.sporttery.cn/help/249715.html?gid=2" target="_blank" rel="noreferrer">查看官方自由过关限制</a></p>
+                  <p><a href="https://www.sporttery.cn/help/3197.html?gid=2" target="_blank" rel="noreferrer">查看官方足球比分游戏规则</a></p>
+                </div>
+              </details>
+            </div>
+          </div>
+        </section>
+
+        <footer>
+          <span>WORLD QUANT 2026</span>
+          <p>公开数据快照 + 可解释模型。赛前首发、伤停与票面赔率必须临场复核。</p>
+        </footer>
+      </main>
+    </div>
+
+    <dialog id="sourcesDialog">
+      <div class="dialog-head">
+        <div>
+          <span class="section-kicker">METHODOLOGY</span>
+          <h2>数据源与边界</h2>
+        </div>
+        <button class="icon-btn" id="closeSources" aria-label="关闭">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="dialog-body">
+        <div class="source-card">
+          <i data-lucide="calendar-check"></i>
+          <div>
+            <strong>赛程结构</strong>
+            <p>FIFA 2026 官方赛制与公开赛程结构；本地保存 104 场快照。</p>
+          </div>
+        </div>
+        <div class="source-card">
+          <i data-lucide="database"></i>
+          <div>
+            <strong>赛果交叉源</strong>
+            <p>OpenFootball 公开 JSON。应用启动时尝试刷新，失败则读取本地快照。</p>
+          </div>
+        </div>
+        <div class="source-card">
+          <i data-lucide="brain-circuit"></i>
+          <div>
+            <strong>模型</strong>
+            <p>以 2026 年 6 月 11 日 FIFA 男足排名为实力基线，结合赛程、历史赛果、近两日完赛比分与 Poisson 进球分布；不等同于官方赔率。</p>
+          </div>
+        </div>
+        <div class="source-card">
+          <i data-lucide="list-ordered"></i>
+          <div>
+            <strong>FIFA 官方排名</strong>
+            <p><a href="https://inside.fifa.com/fifa-world-ranking/men" target="_blank" rel="noreferrer">最近一次官方更新：2026 年 6 月 11 日</a></p>
+          </div>
+        </div>
+        <div class="source-card">
+          <i data-lucide="calculator"></i>
+          <div>
+            <strong>竞彩计算规则</strong>
+            <p>奖金取整、投注倍数与单注封顶依据中国体育彩票官方帮助中心公开规则。</p>
+          </div>
+        </div>
+        <div class="source-card warning-card">
+          <i data-lucide="triangle-alert"></i>
+          <div>
+            <strong>不能可靠建模的内容</strong>
+            <p>所谓资本操作、假球或演戏必须有正式调查证据。未经证实的信息不纳入评分。</p>
+          </div>
+        </div>
+        <p class="legal-note">
+          本工具用于概率教育与情景分析，不提供“稳赚”“必中”或确定收益。请遵守所在地法律，未成年人不得购买彩票。
+        </p>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="./assets/vendor/lucide.min.js"></script>
+    <script src="./assets/vendor/echarts.min.js"></script>
+    <script src="./app.js?v=17"></script>
+  </body>
+</html>

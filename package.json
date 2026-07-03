@@ -1,0 +1,13 @@
+{
+  "name": "world-cup-quant-desk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lightweight 2026 World Cup probability and bankroll simulator",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check app.js && node --check server.js",
+    "smoke:matrix": "node tools/smoke_matrix.mjs",
+    "deploy:pages": "npx wrangler pages deploy . --project-name world-quant",
+    "deploy:vercel": "vercel --prod"
+  }
+}

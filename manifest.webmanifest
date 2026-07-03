@@ -1,0 +1,9 @@
+{
+  "name": "世界杯量化决策台",
+  "short_name": "世界杯量化",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111411",
+  "theme_color": "#111411",
+  "icons": []
+}

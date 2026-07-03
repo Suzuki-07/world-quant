@@ -1,0 +1,8 @@
+.git/
+.vercel/
+functions/
+tools/
+wrangler.toml
+_headers
+WORLD_QUANT_2_UPGRADE.md
+
